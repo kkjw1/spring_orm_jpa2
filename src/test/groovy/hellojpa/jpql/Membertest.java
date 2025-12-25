@@ -1,18 +1,15 @@
 package hellojpa.jpql;
 
-import hellojpa.jpql.domain.Address;
 import hellojpa.jpql.domain.Member;
 import hellojpa.jpql.domain.MemberDTO;
 import hellojpa.jpql.domain.Team;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.SQLOutput;
 import java.util.List;
 
 @SpringBootTest
@@ -123,5 +120,160 @@ public class Membertest {
         for (String s : result) {
             System.out.println("s = " + s);
         }
+    }
+    
+    @Test
+    @Commit
+    public void 경로표현식() throws Exception {
+        Team team = new Team();
+        team.setName("teamA");
+        em.persist(team);
+
+        Team team2 = new Team();
+        team2.setName("teamB");
+        em.persist(team2);
+
+        Member member = new Member();
+        member.setUsername("member1");
+        member.setAge(10);
+        member.setTeam(team);
+        em.persist(member);
+
+        Member member2 = new Member();
+        member2.setUsername("member2");
+        member2.setAge(20);
+        member2.setTeam(team);
+        em.persist(member2);
+
+        Member member3 = new Member();
+        member3.setUsername("member3");
+        member3.setAge(30);
+        member3.setTeam(team2);
+        em.persist(member3);
+
+//        member.changeTeam(team);
+
+        em.flush();
+        em.clear();
+
+        String query = "select m from Member m join fetch m.team";
+        List<Member> result = em.createQuery(query, Member.class).getResultList();
+        for (Member m : result) {
+            System.out.println("m = " + m.getUsername() + ", " + m.getTeam().getName());
+        }
+    }
+
+
+    @Test
+    @Commit
+    public void batchSize() throws Exception {
+        for (int i=1; i<=100; i++) {
+            Team team = new Team();
+            team.setName("team" + i);
+            em.persist(team);
+
+            Member member = new Member();
+            member.setUsername("member" + i);
+            member.setAge(i);
+            member.setTeam(team);
+            em.persist(member);
+
+            em.flush();
+            em.clear();
+        }
+
+        String query = "select t from Team t";
+        List<Team> resultList = em.createQuery(query, Team.class)
+                .setFirstResult(0)
+                .getResultList();
+        System.out.println("resultList.size = " + resultList.size());
+
+        for (Team t : resultList) {
+            System.out.println("team = " + t.getName() + "| Member = " + t.getMembers());
+        }
+
+
+    }
+
+    @Test
+    @Commit
+    public void 정적쿼리() throws Exception {
+        Team team = new Team();
+        team.setName("teamA");
+        em.persist(team);
+
+        Team team2 = new Team();
+        team2.setName("teamB");
+        em.persist(team2);
+
+        Member member = new Member();
+        member.setUsername("member1");
+        member.setAge(10);
+        member.setTeam(team);
+        em.persist(member);
+
+        Member member2 = new Member();
+        member2.setUsername("member2");
+        member2.setAge(20);
+        member2.setTeam(team);
+        em.persist(member2);
+
+        Member member3 = new Member();
+        member3.setUsername("member3");
+        member3.setAge(30);
+        member3.setTeam(team2);
+        em.persist(member3);
+
+        em.flush();
+        em.clear();
+
+        List<Member> resultList = em.createNamedQuery("Member.findByUsername", Member.class)
+                .setParameter("username", "member1")
+                .getResultList();
+        for (Member member1 : resultList) {
+            System.out.println("member1 = " + member1);
+        }
+
+    }
+
+    @Test
+    @Commit
+    public void 벌크연산() throws Exception {
+        Team team = new Team();
+        team.setName("teamA");
+        em.persist(team);
+
+        Team team2 = new Team();
+        team2.setName("teamB");
+        em.persist(team2);
+
+        Member member = new Member();
+        member.setUsername("member1");
+        member.setAge(10);
+        member.setTeam(team);
+        em.persist(member);
+
+        Member member2 = new Member();
+        member2.setUsername("member2");
+        member2.setAge(20);
+        member2.setTeam(team);
+        em.persist(member2);
+
+        Member member3 = new Member();
+        member3.setUsername("member3");
+        member3.setAge(30);
+        member3.setTeam(team2);
+        em.persist(member3);
+
+        int resultCount = em.createQuery("update Member m set m.age = 20")
+                .executeUpdate();
+        System.out.println("resultCount = " + resultCount);
+
+        em.clear();
+
+        System.out.println("member.getAge() = " + member.getAge());
+        System.out.println("member.getAge() = " + member2.getAge());
+        System.out.println("member.getAge() = " + member3.getAge());
+
     }
 }
